@@ -65,7 +65,11 @@
   // Internal function that returns an efficient (for current engines) version
   // of the passed-in callback, to be repeatedly applied in other Underscore
   // functions.
+  // 优化回调函数
+  // 目的是以context作为this来执行func
+  // argCount用于说明回调函数会传入的参数个数
   var optimizeCb = function(func, context, argCount) {
+    // 用void 0是为了防止undefined被重写而出现判断不准确的情况。并且可以省掉很多代码
     if (context === void 0) return func;
     switch (argCount) {
       case 1: return function(value) {
@@ -141,6 +145,7 @@
     return result;
   };
 
+  // 用于访问obj的key
   var shallowProperty = function(key) {
     return function(obj) {
       return obj == null ? void 0 : obj[key];
@@ -162,6 +167,7 @@
   // Avoids a very nasty iOS 8 JIT bug on ARM-64. #2094
   var MAX_ARRAY_INDEX = Math.pow(2, 53) - 1;
   var getLength = shallowProperty('length');
+  // 对象有length属性就是类数组
   var isArrayLike = function(collection) {
     var length = getLength(collection);
     return typeof length == 'number' && length >= 0 && length <= MAX_ARRAY_INDEX;
@@ -169,7 +175,6 @@
 
   // Collection Functions
   // --------------------
-
   // The cornerstone, an `each` implementation, aka `forEach`.
   // Handles raw objects in addition to array-likes. Treats all
   // sparse array-likes as if they were dense.
@@ -181,6 +186,7 @@
         iteratee(obj[i], i, obj);
       }
     } else {
+      // 访问对象自身的可枚举属性
       var keys = _.keys(obj);
       for (i = 0, length = keys.length; i < length; i++) {
         iteratee(obj[keys[i]], keys[i], obj);
@@ -196,6 +202,7 @@
         length = (keys || obj).length,
         results = Array(length);
     for (var index = 0; index < length; index++) {
+      // 数组和对象访问key的方式不同
       var currentKey = keys ? keys[index] : index;
       results[index] = iteratee(obj[currentKey], currentKey, obj);
     }
@@ -210,6 +217,7 @@
       var keys = !isArrayLike(obj) && _.keys(obj),
           length = (keys || obj).length,
           index = dir > 0 ? 0 : length - 1;
+      // 没有初始值时使用第一个作为初始值
       if (!initial) {
         memo = obj[keys ? keys[index] : index];
         index += dir;
@@ -221,6 +229,9 @@
       return memo;
     };
 
+    // context作为iteratee中的this
+    // var obj = {"name": 1, "age": 2, num: 1}
+    // _.reduce([1,2,3], function(memo, num){return memo+this.num}, 0, obj)
     return function(obj, iteratee, memo, context) {
       var initial = arguments.length >= 3;
       return reducer(obj, optimizeCb(iteratee, context, 4), memo, initial);
@@ -989,6 +1000,7 @@
   // Delegates to **ECMAScript 5**'s native `Object.keys`.
   _.keys = function(obj) {
     if (!_.isObject(obj)) return [];
+    // Object.keys 会返回自身可枚举的属性
     if (nativeKeys) return nativeKeys(obj);
     var keys = [];
     for (var key in obj) if (_.has(obj, key)) keys.push(key);
@@ -1310,6 +1322,7 @@
   };
 
   // Is a given variable an object?
+  // null不是对象
   _.isObject = function(obj) {
     var type = typeof obj;
     return type === 'function' || type === 'object' && !!obj;
@@ -1371,6 +1384,7 @@
       return obj != null && hasOwnProperty.call(obj, path);
     }
     var length = path.length;
+    // 支持递归判断，如：_.has({a:{b:1}},['a','b'])
     for (var i = 0; i < length; i++) {
       var key = path[i];
       if (obj == null || !hasOwnProperty.call(obj, key)) {
@@ -1378,6 +1392,7 @@
       }
       obj = obj[key];
     }
+    // 为啥不直接返回true！
     return !!length;
   };
 
