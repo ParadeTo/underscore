@@ -96,6 +96,7 @@
   // element in a collection, returning the desired result — either `identity`,
   // an arbitrary callback, a property matcher, or a property accessor.
   var cb = function(value, context, argCount) {
+    // 如果用户重写了_.iteratee
     if (_.iteratee !== builtinIteratee) return _.iteratee(value, context);
     if (value == null) return _.identity;
     if (_.isFunction(value)) return optimizeCb(value, context, argCount);
@@ -112,7 +113,45 @@
 
   // Similar to ES6's rest param (http://ariya.ofilabs.com/2013/03/es6-and-rest-parameter.html)
   // This accumulates the arguments passed into an array, after a given index.
+  /**
+          var restArgs = function(func, startIndex) {
+            // func.length 返回函数的参数
+            startIndex = startIndex == null ? func.length - 1 : +startIndex;
+            return function() {
+              var length = Math.max(arguments.length - startIndex, 0),
+                  rest = Array(length),
+                  index = 0;
+              for (; index < length; index++) {
+                rest[index] = arguments[index + startIndex];
+              }
+              //     switch (startIndex) {
+              //       case 0: return func.call(this, rest);
+              //       case 1: return func.call(this, arguments[0], rest);
+              //       case 2: return func.call(this, arguments[0], arguments[1], rest);
+              //     }
+              var args = Array(startIndex + 1);
+              for (index = 0; index < startIndex; index++) {
+                args[index] = arguments[index];
+              }
+              args[startIndex] = rest;
+              return func.apply(this, args);
+            };
+          };
+
+          function func(a,b,c,d) {
+            console.log(a,b,c,d)
+          }
+
+          var f = restArgs(func,1)
+
+          f(1,2,3,4)
+          1
+          [2, 3, 4]
+          undefined
+          undefined
+  **/
   var restArgs = function(func, startIndex) {
+    // func.length 返回函数的参数
     startIndex = startIndex == null ? func.length - 1 : +startIndex;
     return function() {
       var length = Math.max(arguments.length - startIndex, 0),
@@ -121,11 +160,13 @@
       for (; index < length; index++) {
         rest[index] = arguments[index + startIndex];
       }
+      // 个人感觉这一段可以去掉阿
       switch (startIndex) {
         case 0: return func.call(this, rest);
         case 1: return func.call(this, arguments[0], rest);
         case 2: return func.call(this, arguments[0], arguments[1], rest);
       }
+
       var args = Array(startIndex + 1);
       for (index = 0; index < startIndex; index++) {
         args[index] = arguments[index];
@@ -152,6 +193,9 @@
     };
   };
 
+  // 得到obj下的某个属性
+  // obj = {a:{b: 1}}
+  // deepGet(obj, ['a', 'b']) 返回1
   var deepGet = function(obj, path) {
     var length = path.length;
     for (var i = 0; i < length; i++) {
@@ -264,12 +308,14 @@
   };
 
   // Return all the elements for which a truth test fails.
+  // filter的相反操作而已
   _.reject = function(obj, predicate, context) {
     return _.filter(obj, _.negate(cb(predicate)), context);
   };
 
   // Determine whether all of the elements match a truth test.
   // Aliased as `all`.
+  // 数组中每个元素都满足要求则返回true
   _.every = _.all = function(obj, predicate, context) {
     predicate = cb(predicate, context);
     var keys = !isArrayLike(obj) && _.keys(obj),
@@ -283,6 +329,7 @@
 
   // Determine if at least one element in the object matches a truth test.
   // Aliased as `any`.
+  // 数组中有一个元素都满足要求则返回true
   _.some = _.any = function(obj, predicate, context) {
     predicate = cb(predicate, context);
     var keys = !isArrayLike(obj) && _.keys(obj),
@@ -295,14 +342,48 @@
   };
 
   // Determine if the array or object contains a given item (using `===`).
-  // Aliased as `includes` and `include`.
+  // Aliased as `includes` and `include`
+  // 是否含有某个元素
   _.contains = _.includes = _.include = function(obj, item, fromIndex, guard) {
+    // 如果不是数组，构建一个所有属性的值的数组
     if (!isArrayLike(obj)) obj = _.values(obj);
     if (typeof fromIndex != 'number' || guard) fromIndex = 0;
     return _.indexOf(obj, item, fromIndex) >= 0;
   };
 
   // Invoke a method (with arguments) on every item in a collection.
+  // _.invoke([[5, 1, 7], [3, 2, 1]], 'sort', function(a,b){return b-a});
+  // 这里func是三个参数
+  // 如果invoke 传入的参数大于3个，比如 _.invoke([[5, 1, 7], [3, 2, 1]], 'slice', 0, 1);
+  // 则 rest = [0, 1]
+  /**
+    var restArgs = function(func, startIndex) {
+
+    startIndex = startIndex == null ? func.length - 1 : +startIndex;
+    return function() {
+      // 这里的arguments就是[[5, 1, 7], [3, 2, 1]]和'sort'还有function
+      var length = Math.max(arguments.length - startIndex, 0),
+          rest = Array(length),
+          index = 0;
+      for (; index < length; index++) {
+        rest[index] = arguments[index + startIndex];
+      }
+      // 个人感觉这一段可以去掉阿
+      switch (startIndex) {
+        case 0: return func.call(this, rest);
+        case 1: return func.call(this, arguments[0], rest);
+        case 2: return func.call(this, arguments[0], arguments[1], rest);
+      }
+
+      var args = Array(startIndex + 1);
+      for (index = 0; index < startIndex; index++) {
+        args[index] = arguments[index];
+      }
+      args[startIndex] = rest;
+      return func.apply(this, args);
+    };
+  };
+  **/
   _.invoke = restArgs(function(obj, path, args) {
     var contextPath, func;
     if (_.isFunction(path)) {
@@ -315,6 +396,8 @@
       var method = func;
       if (!method) {
         if (contextPath && contextPath.length) {
+          // obj = {a: {b: 1}}
+          // 得到context 下的某个方法 如： context = obj, contextPath = ['a', 'b']
           context = deepGet(context, contextPath);
         }
         if (context == null) return void 0;
@@ -661,6 +744,7 @@
   };
 
   // Generator function to create the findIndex and findLastIndex functions.
+  // 支持两个方向的遍历及不同的step遍历
   var createPredicateIndexFinder = function(dir) {
     return function(array, predicate, context) {
       predicate = cb(predicate, context);
