@@ -101,7 +101,7 @@
     if (value == null) return _.identity;
     if (_.isFunction(value)) return optimizeCb(value, context, argCount);
     if (_.isObject(value) && !_.isArray(value)) return _.matcher(value);
-    return _.property(value);
+    return _.property(value); // 当 value 为字符串时
   };
 
   // External wrapper for our callback generator. Users may customize
@@ -240,6 +240,8 @@
   };
 
   // Return the results of applying the iteratee to each element.
+  // var res = _.map({a:1,b:2},function(item){return item+1})
+  // [2, 3]
   _.map = _.collect = function(obj, iteratee, context) {
     iteratee = cb(iteratee, context);
     var keys = !isArrayLike(obj) && _.keys(obj),
@@ -408,18 +410,25 @@
   });
 
   // Convenience version of a common use case of `map`: fetching a property.
+  // var stooges = [{name: 'moe', age: 40}, {name: 'larry', age: 50}, {name: 'curly', age: 60}];
+  //  _.pluck(stooges, 'name');
+  //  => ["moe", "larry", "curly"]
   _.pluck = function(obj, key) {
     return _.map(obj, _.property(key));
   };
 
   // Convenience version of a common use case of `filter`: selecting only objects
   // containing specific `key:value` pairs.
+  // _.where(listOfPlays, {author: "Shakespeare", year: 1611});
+  // => [{title: "Cymbeline", author: "Shakespeare", year: 1611},
+  //    {title: "The Tempest", author: "Shakespeare", year: 1611}]
   _.where = function(obj, attrs) {
     return _.filter(obj, _.matcher(attrs));
   };
 
   // Convenience version of a common use case of `find`: getting the first object
   // containing specific `key:value` pairs.
+  // 跟where类似，返回第一个
   _.findWhere = function(obj, attrs) {
     return _.find(obj, _.matcher(attrs));
   };
@@ -438,6 +447,7 @@
       }
     } else {
       iteratee = cb(iteratee, context);
+      // 循环每一个元素得到一个值，并与上一个元素得到的值进行比较
       _.each(obj, function(v, index, list) {
         computed = iteratee(v, index, list);
         if (computed > lastComputed || computed === -Infinity && result === -Infinity) {
@@ -450,6 +460,7 @@
   };
 
   // Return the minimum element (or element-based computation).
+  // 跟上面类似
   _.min = function(obj, iteratee, context) {
     var result = Infinity, lastComputed = Infinity,
         value, computed;
@@ -483,6 +494,10 @@
   // [Fisher-Yates shuffle](http://en.wikipedia.org/wiki/Fisher–Yates_shuffle).
   // If **n** is not specified, returns a single random element.
   // The internal `guard` argument allows it to work with `map`.
+  // _.sample([1, 2, 3, 4, 5, 6], 3);
+  // => [1, 6, 2]
+  // _.sample({name: 'ayou', age:1}, 1)
+  // ayou
   _.sample = function(obj, n, guard) {
     if (n == null || guard) {
       if (!isArrayLike(obj)) obj = _.values(obj);
@@ -492,6 +507,7 @@
     var length = getLength(sample);
     n = Math.max(Math.min(n, length), 0);
     var last = length - 1;
+    // 随机选取n个元素与数组头n个元素交换，最后返回头n个元素
     for (var index = 0; index < n; index++) {
       var rand = _.random(index, last);
       var temp = sample[index];
@@ -502,8 +518,21 @@
   };
 
   // Sort the object's values by a criterion produced by an iteratee.
+  // 以下面为例：
+  // var stooges = [{name: 'moe', age: 40}, {name: 'larry', age: 50}, {name: 'curly', age: 60}];
+  // _.sortBy(stooges, 'name');
+  // => [{name: 'curly', age: 60}, {name: 'larry', age: 50}, {name: 'moe', age: 40}];
+  // _.map() 后 返回：
+  // [{
+  //  value: {name: 'curly', age: 60},
+  //  index: 0,
+  //  criteria: (function(obj) {
+  //     return obj == null ? void 0 : obj[key];
+  //    })(value, key, list)
+  // },...]
   _.sortBy = function(obj, iteratee, context) {
     var index = 0;
+
     iteratee = cb(iteratee, context);
     return _.pluck(_.map(obj, function(value, key, list) {
       return {
@@ -537,10 +566,31 @@
 
   // Groups the object's values by a criterion. Pass either a string attribute
   // to group by, or a function that returns the criterion.
+  // _.groupBy([1.3, 2.1, 2.4], function(num){ return Math.floor(num); });
+  // => {1: [1.3], 2: [2.1, 2.4]}
+
+  // _.groupBy(['one', 'two', 'three'], 'length');
+  // => {3: ["one", "two"], 5: ["three"]}
+  /*
+    var obj = [
+      {
+          name: 'ayou',
+          age:1
+      }, {
+          name: 'xing',
+          age: 2
+      }, {
+          name: 'zhi',
+          age: 3
+      }]
+    _.groupBy(obj, function(item) {return item.name})
+     {ayou: Array(2), zhi: Array(1)}
+  */
   _.groupBy = group(function(result, value, key) {
     if (_.has(result, key)) result[key].push(value); else result[key] = [value];
   });
 
+  // TODO
   // Indexes the object's values by a criterion, similar to `groupBy`, but for
   // when you know that your index values will be unique.
   _.indexBy = group(function(result, value, key) {
@@ -1059,6 +1109,7 @@
   // ----------------
 
   // Keys in IE < 9 that won't be iterated by `for key in ...` and thus missed.
+  // IE < 9 对象中的toString不能遍历
   var hasEnumBug = !{toString: null}.propertyIsEnumerable('toString');
   var nonEnumerableProps = ['valueOf', 'isPrototypeOf', 'toString',
                       'propertyIsEnumerable', 'hasOwnProperty', 'toLocaleString'];
@@ -1097,6 +1148,13 @@
   _.allKeys = function(obj) {
     if (!_.isObject(obj)) return [];
     var keys = [];
+    // 返回自身的及原型链上的可枚举的属性
+    // function P() {this.name = 'ayou'}
+    // P.prototype.age = 1
+    // var s = new S()
+    // S.prototype = new P()
+    // var s = new S()
+    // for (var k in s) console.log(k)
     for (var key in obj) keys.push(key);
     // Ahem, IE < 9.
     if (hasEnumBug) collectNonEnumProps(obj, keys);
@@ -1180,10 +1238,12 @@
   };
 
   // Extend a given object with all the properties in passed-in object(s).
+  // 拷贝所有的属性（包括原型链）到目标对象
   _.extend = createAssigner(_.allKeys);
 
   // Assigns a given object with all the own properties in the passed-in object(s).
   // (https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object/assign)
+  // 只拷贝对象自身的属性（不包括原型链上）到目标对象
   _.extendOwn = _.assign = createAssigner(_.keys);
 
   // Returns the first key on an object that passes a predicate test.
@@ -1249,6 +1309,7 @@
   };
 
   // Create a (shallow-cloned) duplicate of an object.
+  // 浅拷贝
   _.clone = function(obj) {
     if (!_.isObject(obj)) return obj;
     return _.isArray(obj) ? obj.slice() : _.extend({}, obj);
@@ -1541,6 +1602,7 @@
   };
 
   // Return a random integer between min and max (inclusive).
+  // 随机返回位于[min, max]中的整数
   _.random = function(min, max) {
     if (max == null) {
       max = min;
