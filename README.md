@@ -26,3 +26,9 @@ https://github.com/documentcloud
 
 Many thanks to our contributors:
 https://github.com/jashkenas/underscore/contributors
+
+# 笔记
+## restArgs
+这是一个很重要的函数
+```javascript
+```

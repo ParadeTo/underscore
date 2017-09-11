@@ -151,7 +151,7 @@
           undefined
   **/
   var restArgs = function(func, startIndex) {
-    // func.length 返回函数的参数
+    // func.length 返回函数的参数个数
     startIndex = startIndex == null ? func.length - 1 : +startIndex;
     return function() {
       var length = Math.max(arguments.length - startIndex, 0),
@@ -554,6 +554,7 @@
   // An internal function used for aggregate "group by" operations.
   var group = function(behavior, partition) {
     return function(obj, iteratee, context) {
+      // partition返回一个数组，其他返回一个对象
       var result = partition ? [[], []] : {};
       iteratee = cb(iteratee, context);
       _.each(obj, function(value, index) {
@@ -590,9 +591,10 @@
     if (_.has(result, key)) result[key].push(value); else result[key] = [value];
   });
 
-  // TODO
   // Indexes the object's values by a criterion, similar to `groupBy`, but for
   // when you know that your index values will be unique.
+  // _.groupBy([1.3, 2.1, 2.4], function(num){ return Math.floor(num); });
+  // => {1: 1.3, 2: 2.4}
   _.indexBy = group(function(result, value, key) {
     result[key] = value;
   });
@@ -600,10 +602,15 @@
   // Counts instances of an object that group by a certain criterion. Pass
   // either a string attribute to count by, or a function that returns the
   // criterion.
+  // _.countBy([1, 2, 3, 4, 5], function(num) {
+  //    return num % 2 == 0 ? 'even': 'odd';
+  //  });
+  // {odd: 3, even: 2}
   _.countBy = group(function(result, value, key) {
     if (_.has(result, key)) result[key]++; else result[key] = 1;
   });
 
+  // https://www.zhihu.com/question/38324041
   var reStrSymbol = /[^\ud800-\udfff]|[\ud800-\udbff][\udc00-\udfff]|[\ud800-\udfff]/g;
   // Safely create a real, live array from anything iterable.
   _.toArray = function(obj) {
@@ -635,6 +642,7 @@
   // Get the first element of an array. Passing **n** will return the first N
   // values in the array. Aliased as `head` and `take`. The **guard** check
   // allows it to work with `_.map`.
+  // 返回array的前n个元素
   _.first = _.head = _.take = function(array, n, guard) {
     if (array == null || array.length < 1) return void 0;
     if (n == null || guard) return array[0];
@@ -644,12 +652,14 @@
   // Returns everything but the last entry of the array. Especially useful on
   // the arguments object. Passing **n** will return all the values in
   // the array, excluding the last N.
+  // 返回length - n的前n个元素
   _.initial = function(array, n, guard) {
     return slice.call(array, 0, Math.max(0, array.length - (n == null || guard ? 1 : n)));
   };
 
   // Get the last element of an array. Passing **n** will return the last N
   // values in the array.
+  // 返回后面n个元素
   _.last = function(array, n, guard) {
     if (array == null || array.length < 1) return void 0;
     if (n == null || guard) return array[array.length - 1];
@@ -659,16 +669,19 @@
   // Returns everything but the first entry of the array. Aliased as `tail` and `drop`.
   // Especially useful on the arguments object. Passing an **n** will return
   // the rest N values in the array.
+  // 返回length - n的后面元素
   _.rest = _.tail = _.drop = function(array, n, guard) {
     return slice.call(array, n == null || guard ? 1 : n);
   };
 
   // Trim out all falsy values from an array.
+  // 返回数组中所有非负的元素
   _.compact = function(array) {
     return _.filter(array, Boolean);
   };
 
   // Internal implementation of a recursive `flatten` function.
+  // 扁平化
   var flatten = function(input, shallow, strict, output) {
     output = output || [];
     var idx = output.length;
