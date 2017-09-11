@@ -29,6 +29,13 @@ https://github.com/jashkenas/underscore/contributors
 
 # 笔记
 ## restArgs
-这是一个很重要的函数
+这个函数可以把函数中的参数收集成一个数组
 ```javascript
+var f = restArgs(function(arg1, arg2) {
+  console.log(arg1, arg2)
+})
+
+// 原函数定义了2个参数，这里传入了4个，则后面的三个参数会收集成一个数组
+f(1,2,3,4)
+1 [2,3,4]
 ```

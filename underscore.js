@@ -717,6 +717,7 @@
   // been sorted, you have the option of using a faster algorithm.
   // Aliased as `unique`.
   _.uniq = _.unique = function(array, isSorted, iteratee, context) {
+    // 如果isSorted不是Boolean类型的
     if (!_.isBoolean(isSorted)) {
       context = iteratee;
       iteratee = isSorted;
@@ -728,6 +729,7 @@
     for (var i = 0, length = getLength(array); i < length; i++) {
       var value = array[i],
           computed = iteratee ? iteratee(value, i, array) : value;
+      // 如果已经排好了序，则只用比较相邻两个元素
       if (isSorted) {
         if (!i || seen !== computed) result.push(value);
         seen = computed;
@@ -751,6 +753,7 @@
 
   // Produce an array that contains every item shared between all the
   // passed-in arrays.
+  // 求数组的交集
   _.intersection = function(array) {
     var result = [];
     var argsLength = arguments.length;
@@ -768,7 +771,10 @@
 
   // Take the difference between one array and a number of other arrays.
   // Only the elements present in just the first array will remain.
+  // 返回在array中不在rest中的元素，rest可以是嵌套的数组
+  // _.difference([1, 2, 3, 4, 5], 5, 2, 10); 这个没效果
   _.difference = restArgs(function(array, rest) {
+    // 对其他数组进行扁平化
     rest = flatten(rest, true, true);
     return _.filter(array, function(value){
       return !_.contains(rest, value);
@@ -778,6 +784,7 @@
   // Complement of _.zip. Unzip accepts an array of arrays and groups
   // each array's elements on shared indices.
   _.unzip = function(array) {
+    // 以最长的那个数组的长度作为基准
     var length = array && _.max(array, getLength).length || 0;
     var result = Array(length);
 
@@ -789,8 +796,12 @@
 
   // Zip together multiple lists into a single array -- elements that share
   // an index go together.
+  // 下面两个等价
+  // _.zip(['moe', 'larry', 'curly'], [30, 40, 50], [true, false, false]);
+  // _.unzip([['moe', 'larry', 'curly'], [30, 40, 50], [true, false, false]]);
   _.zip = restArgs(_.unzip);
 
+  // TODO
   // Converts lists into objects. Pass either a single array of `[key, value]`
   // pairs, or two parallel arrays of the same length -- one of keys, and one of
   // the corresponding values. Passing by pairs is the reverse of _.pairs.
